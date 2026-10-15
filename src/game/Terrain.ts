@@ -362,4 +362,4 @@ export class Terrain {
     mesh.castShadow = false;
     return mesh;
   }
-}}
+}
