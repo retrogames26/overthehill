@@ -11,7 +11,7 @@ export interface ObstacleCollider {
 
 export class VehiclePhysics {
   // World reference & model
-  public position = new THREE.Vector3(-120, 15.2, 175);
+  public position = new THREE.Vector3(-150, 15.2, 220);
   public velocity = new THREE.Vector3();
   public quaternion = new THREE.Quaternion();
   public angularVelocity = new THREE.Vector3();
@@ -48,7 +48,7 @@ export class VehiclePhysics {
   public readonly suspensionDamping = 3200;
 
   // Safe recovery position
-  public lastSafePosition = new THREE.Vector3(-120, 15.2, 175);
+  public lastSafePosition = new THREE.Vector3(-150, 15.2, 220);
   public lastSafeYaw = 0;
 
   // Preallocated math helpers to ensure 0 GC during ticks
@@ -84,7 +84,7 @@ export class VehiclePhysics {
     this.position.y = groundY + this.model.tireRadius + 0.35;
     this.velocity.set(0, 0, 0);
     this.angularVelocity.set(0, 0, 0);
-    this.yaw = 0.65; // facing towards road exit
+    this.yaw = 2.35; // face along the trailhead road from the new spawn
     this.updateQuaternion();
   }
 
