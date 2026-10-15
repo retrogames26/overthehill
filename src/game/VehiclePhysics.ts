@@ -28,10 +28,10 @@ export class VehiclePhysics {
 
   // Drivetrain & dynamics parameters
   public readonly mass = 1750;             // kg
-  public readonly maxEngineTorque = 4200;  // N
+  public readonly maxEngineTorque = 8500;  // N
   public readonly maxBrakeForce = 6500;    // N
-  public readonly maxSpeedKmh = 92;        // Top speed on flat road
-  public readonly reverseMaxSpeedKmh = 28;
+  public readonly maxSpeedKmh = 180;       // Arcade-fast top speed on flat road
+  public readonly reverseMaxSpeedKmh = 45;
   public currentSpeedKmh = 0;
   public currentRpm = 900;
   public gear: 'R' | 'N' | 'D' | 'P' = 'D';
@@ -121,17 +121,17 @@ export class VehiclePhysics {
 
     // Surface friction & drag coefficients
     let surfaceGrip = 1.0;
-    let rollingResistance = 0.018;
+    let rollingResistance = 0.010;
     let waterDrag = 0;
 
     switch (this.currentSurface) {
       case 'road':
         surfaceGrip = 1.05;
-        rollingResistance = 0.015;
+        rollingResistance = 0.008;
         break;
       case 'grass':
         surfaceGrip = 0.88;
-        rollingResistance = 0.035;
+        rollingResistance = 0.025;
         break;
       case 'mud':
         surfaceGrip = 0.58;
@@ -253,7 +253,7 @@ export class VehiclePhysics {
     const accelForward = netTractiveForce / this.mass;
 
     // Rolling resistance + aerodynamic drag
-    const aeroDragCoeff = 0.42;
+    const aeroDragCoeff = 0.22;
     const dragForce = 0.5 * 1.225 * aeroDragCoeff * 2.5 * forwardSpeed * Math.abs(forwardSpeed);
     const rollResistanceForce = forwardSpeed * this.mass * 9.81 * rollingResistance;
     const waterResistanceForce = forwardSpeed * waterDrag * 180;
