@@ -17,6 +17,7 @@ export class Terrain {
 
   // Road waypoints forming the main expedition trail
   public mainRoad: RoadPoint[] = [
+    { x: -150, z: 220, width: 8.5 }, // New trailhead spawn
     { x: -140, z: 210, width: 8.5 }, // Camp back
     { x: -110, z: 175, width: 8.5 }, // Camp center
     { x: -75, z: 135, width: 8.0 },  // CP 1 Gate
@@ -27,9 +28,12 @@ export class Terrain {
     { x: 125, z: 45, width: 7.5 },   // Valley entrance
     { x: 155, z: 10, width: 7.0 },   // Pine forest (CP 3)
     { x: 175, z: -40, width: 7.0 },  // Forest curve
-    { x: 165, z: -95, width: 6.5 },  // Rocky ascent base (CP 4)
-    { x: 140, z: -145, width: 6.5 }, // Switchback 1
-    { x: 110, z: -185, width: 6.5 }, // Switchback 2
+    { x: 165, z: -95, width: 7.0 },  // Rocky ascent base (CP 4)
+    { x: 185, z: -120, width: 6.5 }, // Rock climb approach
+    { x: 165, z: -140, width: 6.0 }, // Tight switchback 1
+    { x: 185, z: -162, width: 6.0 }, // Tight switchback 2
+    { x: 150, z: -175, width: 6.0 }, // Cliff traverse
+    { x: 110, z: -185, width: 6.5 }, // Switchback 3
     { x: 75, z: -230, width: 7.0 },  // Eagle crest (CP 5)
     { x: 25, z: -270, width: 6.5 },  // High ridge
     { x: -30, z: -305, width: 7.0 }, // Summit approach
@@ -324,8 +328,8 @@ export class Terrain {
         const rightZ = curr.z + normZ * halfW;
 
         // Sample both edges independently, keeping the ribbon glued to hills.
-        const leftY = this.getHeight(leftX, leftZ) + 0.22;
-        const rightY = this.getHeight(rightX, rightZ) + 0.22;
+        const leftY = this.getHeight(leftX, leftZ) + 0.045;
+        const rightY = this.getHeight(rightX, rightZ) + 0.045;
         vertices.push(leftX, leftY, leftZ, rightX, rightY, rightZ);
 
         if (i < samples.length - 1) {
