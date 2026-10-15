@@ -328,8 +328,8 @@ export class Terrain {
         const rightZ = curr.z + normZ * halfW;
 
         // Sample both edges independently, keeping the ribbon glued to hills.
-        const leftY = this.getHeight(leftX, leftZ) + 0.045;
-        const rightY = this.getHeight(rightX, rightZ) + 0.045;
+        const leftY = this.getHeight(leftX, leftZ) + 0.09;
+        const rightY = this.getHeight(rightX, rightZ) + 0.09;
         vertices.push(leftX, leftY, leftZ, rightX, rightY, rightZ);
 
         if (i < samples.length - 1) {
