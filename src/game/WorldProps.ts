@@ -267,8 +267,8 @@ export class WorldProps {
     const foliageGeo = new THREE.ConeGeometry(2.2, 6.0, 6);
     foliageGeo.translate(0, 4.8, 0);
 
-    const trunkMat = new THREE.MeshStandardMaterial({ color: 0x3d2716, roughness: 0.9 });
-    const pineMat = new THREE.MeshStandardMaterial({ color: 0x1f3d24, roughness: 0.85 });
+    const trunkMat = new THREE.MeshStandardMaterial({ color: 0x3d2716, roughness: 0.9, flatShading: true });
+    const pineMat = new THREE.MeshStandardMaterial({ color: 0x1f3d24, roughness: 0.85, flatShading: true });
 
     const trunkMesh = new THREE.InstancedMesh(trunkGeo, trunkMat, pineCount);
     const foliageMesh = new THREE.InstancedMesh(foliageGeo, pineMat, pineCount);
