@@ -1,0 +1,6 @@
+{
+  "name": "Trailbound: Wild Horizons",
+  "description": "An adventurous 3D off-road exploration and expedition game featuring responsive 4x4 physics, mountain trails, scenic checkpoints, and open terrain.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
