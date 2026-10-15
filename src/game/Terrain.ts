@@ -12,7 +12,7 @@ export class Terrain {
   public waterMesh: THREE.Mesh;
   public roadMesh: THREE.Mesh;
   public size: number = 800;
-  public segments: number = 220;
+  public segments: number = 150; // Larger facets make the terrain read as a stylized low-poly landscape.
   public waterLevel: number = 4.2;
 
   // Road waypoints forming the main expedition trail
@@ -108,7 +108,7 @@ export class Terrain {
       vertexColors: true,
       roughness: 0.88,
       metalness: 0.05,
-      flatShading: false,
+      flatShading: true,
     });
 
     this.mesh = new THREE.Mesh(geo, terrainMat);
