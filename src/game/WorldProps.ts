@@ -7,10 +7,129 @@ export class WorldProps {
 
   constructor(private scene: THREE.Scene, private terrain: Terrain) {
     this.buildBaseCamp();
+    this.buildTrailCamps();
+    this.buildTinyCreeks();
     this.buildRiverBridge();
     this.buildSummitLookout();
     this.populateInstancedFoliage();
     this.populateInstancedRocks();
+  }
+
+  /** Small low-poly timber shelters placed on clear, level camp pads. */
+  private buildTrailCamps() {
+    const sites = [
+      { x: 82, z: -5, scale: 0.9 },
+      { x: 118, z: -205, scale: 0.82 },
+      { x: -62, z: -310, scale: 1.0 },
+    ];
+    const wood = new THREE.MeshStandardMaterial({ color: 0x805536, roughness: 1, flatShading: true });
+    const darkWood = new THREE.MeshStandardMaterial({ color: 0x513723, roughness: 1, flatShading: true });
+    const roof = new THREE.MeshStandardMaterial({ color: 0x344c43, roughness: 1, flatShading: true });
+    const stone = new THREE.MeshStandardMaterial({ color: 0x77756b, roughness: 1, flatShading: true });
+
+    for (const site of sites) {
+      const group = new THREE.Group();
+      group.position.set(site.x, this.terrain.getHeight(site.x, site.z), site.z);
+      group.scale.setScalar(site.scale);
+      const cabin = new THREE.Mesh(new THREE.BoxGeometry(5.2, 2.8, 4.2), wood);
+      cabin.position.y = 1.4;
+      cabin.castShadow = true;
+      cabin.receiveShadow = true;
+      group.add(cabin);
+
+      // Simple faceted gable roof, with a porch-like overhang.
+      const roofMesh = new THREE.Mesh(new THREE.ConeGeometry(4.1, 2.2, 4), roof);
+      roofMesh.position.set(0, 3.65, 0);
+      roofMesh.rotation.y = Math.PI / 4;
+      roofMesh.castShadow = true;
+      group.add(roofMesh);
+
+      const door = new THREE.Mesh(new THREE.BoxGeometry(0.85, 1.7, 0.12), darkWood);
+      door.position.set(0, 0.85, 2.16);
+      group.add(door);
+
+      for (const x of [-1.55, 1.55]) {
+        const window = new THREE.Mesh(
+          new THREE.BoxGeometry(0.72, 0.68, 0.1),
+          new THREE.MeshStandardMaterial({ color: 0x9bcbd4, emissive: 0x1b3438, roughness: 0.4 })
+        );
+        window.position.set(x, 1.75, 2.17);
+        group.add(window);
+      }
+
+      // A small angular stone fire ring gives each shelter a distinct camp silhouette.
+      for (let i = 0; i < 7; i++) {
+        const a = (i / 7) * Math.PI * 2;
+        const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(0.32, 0), stone);
+        rock.position.set(Math.cos(a) * 2.5, 0.18, 4.0 + Math.sin(a) * 1.4);
+        rock.scale.y = 0.55;
+        rock.castShadow = true;
+        group.add(rock);
+      }
+      this.scene.add(group);
+    }
+  }
+
+  /** Narrow, winding water ribbons add little creeks away from the main trail. */
+  private buildTinyCreeks() {
+    const streams = [
+      [{ x: -8, z: 12 }, { x: 0, z: 1 }, { x: 10, z: -8 }, { x: 18, z: -22 }, { x: 30, z: -36 }],
+      [{ x: 95, z: 110 }, { x: 108, z: 96 }, { x: 116, z: 82 }, { x: 125, z: 70 }, { x: 137, z: 62 }],
+      [{ x: -185, z: -35 }, { x: -172, z: -52 }, { x: -166, z: -72 }, { x: -153, z: -90 }, { x: -145, z: -108 }],
+    ];
+    const waterMat = new THREE.MeshStandardMaterial({
+      color: 0x4aafc7,
+      roughness: 0.28,
+      metalness: 0.08,
+      flatShading: true,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.9,
+    });
+
+    for (const path of streams) {
+      const vertices: number[] = [];
+      const indices: number[] = [];
+      const samples: { x: number; z: number }[] = [];
+      for (let i = 0; i < path.length - 1; i++) {
+        const a = path[i];
+        const b = path[i + 1];
+        for (let s = 0; s < 6; s++) {
+          const t = s / 6;
+          samples.push({ x: THREE.MathUtils.lerp(a.x, b.x, t), z: THREE.MathUtils.lerp(a.z, b.z, t) });
+        }
+      }
+      samples.push(path[path.length - 1]);
+
+      for (let i = 0; i < samples.length; i++) {
+        const p = samples[i];
+        const prev = samples[Math.max(0, i - 1)];
+        const next = samples[Math.min(samples.length - 1, i + 1)];
+        const dx = next.x - prev.x;
+        const dz = next.z - prev.z;
+        const len = Math.hypot(dx, dz) || 1;
+        const nx = -dz / len;
+        const nz = dx / len;
+        const width = 0.75 + 0.25 * Math.sin(i * 0.7);
+        const leftX = p.x + nx * width;
+        const leftZ = p.z + nz * width;
+        const rightX = p.x - nx * width;
+        const rightZ = p.z - nz * width;
+        const y = Math.max(this.terrain.waterLevel + 0.8, this.terrain.getHeight(p.x, p.z) - 0.12);
+        vertices.push(leftX, y, leftZ, rightX, y, rightZ);
+        if (i < samples.length - 1) {
+          const base = i * 2;
+          indices.push(base, base + 1, base + 2, base + 1, base + 3, base + 2);
+        }
+      }
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+      geo.setIndex(indices);
+      geo.computeVertexNormals();
+      const creek = new THREE.Mesh(geo, waterMat);
+      creek.receiveShadow = true;
+      this.scene.add(creek);
+    }
   }
 
   /**
