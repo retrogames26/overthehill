@@ -28,10 +28,10 @@ export class VehiclePhysics {
 
   // Drivetrain & dynamics parameters
   public readonly mass = 1750;             // kg
-  public readonly maxEngineTorque = 4200;  // N
+  public readonly maxEngineTorque = 30000;  // N
   public readonly maxBrakeForce = 6500;    // N
-  public readonly maxSpeedKmh = 92;        // Top speed on flat road
-  public readonly reverseMaxSpeedKmh = 28;
+  public readonly maxSpeedKmh = 400;        // Top speed on flat road
+  public readonly reverseMaxSpeedKmh = 100;
   public currentSpeedKmh = 0;
   public currentRpm = 900;
   public gear: 'R' | 'N' | 'D' | 'P' = 'D';
@@ -121,17 +121,17 @@ export class VehiclePhysics {
 
     // Surface friction & drag coefficients
     let surfaceGrip = 1.0;
-    let rollingResistance = 0.018;
+    let rollingResistance = 0.005;
     let waterDrag = 0;
 
     switch (this.currentSurface) {
       case 'road':
         surfaceGrip = 1.05;
-        rollingResistance = 0.015;
+        rollingResistance = 0.004;
         break;
       case 'grass':
         surfaceGrip = 0.88;
-        rollingResistance = 0.035;
+        rollingResistance = 0.012;
         break;
       case 'mud':
         surfaceGrip = 0.58;
@@ -206,7 +206,7 @@ export class VehiclePhysics {
       this.gear = 'D';
       // Speed-governed torque curve
       const speedRatio = Math.min(1.0, this.currentSpeedKmh / this.maxSpeedKmh);
-      const torqueCurve = Math.max(0.18, 1.0 - Math.pow(speedRatio, 1.4));
+      const torqueCurve = Math.max(0.65, 1.0 - Math.pow(speedRatio, 1.1));
       driveForce = this.throttleInput * this.maxEngineTorque * torqueCurve * surfaceGrip;
 
       // Deplete fuel slowly
@@ -253,7 +253,7 @@ export class VehiclePhysics {
     const accelForward = netTractiveForce / this.mass;
 
     // Rolling resistance + aerodynamic drag
-    const aeroDragCoeff = 0.42;
+    const aeroDragCoeff = 0.06;
     const dragForce = 0.5 * 1.225 * aeroDragCoeff * 2.5 * forwardSpeed * Math.abs(forwardSpeed);
     const rollResistanceForce = forwardSpeed * this.mass * 9.81 * rollingResistance;
     const waterResistanceForce = forwardSpeed * waterDrag * 180;
@@ -266,7 +266,10 @@ export class VehiclePhysics {
     const gravitySlopeDecel = slopeForward * 9.81;
 
     // Apply forward velocity update
-    const newForwardSpeed = forwardSpeed + (accelForward - totalResistance - gravitySlopeDecel) * clampedDt;
+    const rawForwardSpeed = forwardSpeed + (accelForward - totalResistance - gravitySlopeDecel) * clampedDt;
+    const maxForwardSpeed = this.maxSpeedKmh / 3.6;
+    const maxReverseSpeed = this.reverseMaxSpeedKmh / 3.6;
+    const newForwardSpeed = THREE.MathUtils.clamp(rawForwardSpeed, -maxReverseSpeed, maxForwardSpeed);
 
     // 7. Lateral Grip, Steering & Drifting
     // Steering angle decreases smoothly at higher speeds to maintain high-speed stability
