@@ -266,7 +266,11 @@ export class VehiclePhysics {
     const gravitySlopeDecel = slopeForward * 9.81;
 
     // Apply forward velocity update
-    const newForwardSpeed = forwardSpeed + (accelForward - totalResistance - gravitySlopeDecel) * clampedDt;
+    const rawForwardSpeed = forwardSpeed + (accelForward - totalResistance - gravitySlopeDecel) * clampedDt;
+    // Hard speed governor: downhill gravity must never push the vehicle beyond its designed limits.
+    const maxForwardSpeed = this.maxSpeedKmh / 3.6;
+    const maxReverseSpeed = this.reverseMaxSpeedKmh / 3.6;
+    const newForwardSpeed = THREE.MathUtils.clamp(rawForwardSpeed, -maxReverseSpeed, maxForwardSpeed);
 
     // 7. Lateral Grip, Steering & Drifting
     // Steering angle decreases smoothly at higher speeds to maintain high-speed stability
