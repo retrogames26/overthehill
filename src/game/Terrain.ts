@@ -12,7 +12,7 @@ export class Terrain {
   public waterMesh: THREE.Mesh;
   public roadMesh: THREE.Mesh;
   public size: number = 800;
-  public segments: number = 220;
+  public segments: number = 128; // Larger triangular faces create a readable low-poly landscape
   public waterLevel: number = 4.2;
 
   // Road waypoints forming the main expedition trail
@@ -78,13 +78,13 @@ export class Terrain {
 
       if (y < this.waterLevel + 0.6) {
         // River bed / banks
-        tempCol.copy(cSand).lerp(cMud, Math.random() * 0.3);
+        tempCol.copy(cSand).lerp(cMud, this.colorNoise(x, z) * 0.3);
       } else if (isRoad) {
         // Dirt road
         tempCol.copy(cDirt).lerp(cGrass, roadBlend * 0.4);
       } else if (slope > 0.48) {
         // Steep mountain cliff
-        tempCol.copy(cRock).multiplyScalar(0.85 + Math.random() * 0.3);
+        tempCol.copy(cRock).multiplyScalar(0.86 + this.colorNoise(x, z) * 0.24);
       } else if (y > 54) {
         // High snow peak
         tempCol.copy(cSnow).lerp(cRock, slope * 1.5);
@@ -108,7 +108,7 @@ export class Terrain {
       vertexColors: true,
       roughness: 0.88,
       metalness: 0.05,
-      flatShading: false,
+      flatShading: true,
     });
 
     this.mesh = new THREE.Mesh(geo, terrainMat);
@@ -133,6 +133,12 @@ export class Terrain {
     // Procedural dirt road ribbon mesh overlay for crisp visual trail edges
     this.roadMesh = this.buildRoadRibbon();
     scene.add(this.roadMesh);
+  }
+
+  /** Stable spatial variation keeps low-poly terrain colors consistent between runs. */
+  private colorNoise(x: number, z: number): number {
+    const v = Math.sin(x * 12.9898 + z * 78.233) * 43758.5453;
+    return v - Math.floor(v);
   }
 
   /**
@@ -280,54 +286,60 @@ export class Terrain {
   private buildRoadRibbon(): THREE.Mesh {
     const vertices: number[] = [];
     const indices: number[] = [];
-    let vertIndex = 0;
+    let vertexIndex = 0;
 
-    const buildStrip = (pts: RoadPoint[], isMud: boolean) => {
-      for (let i = 0; i < pts.length; i++) {
-        const curr = pts[i];
-        let dirX = 0;
-        let dirZ = 1;
-
-        if (i < pts.length - 1) {
-          const next = pts[i + 1];
-          dirX = next.x - curr.x;
-          dirZ = next.z - curr.z;
-        } else if (i > 0) {
-          const prev = pts[i - 1];
-          dirX = curr.x - prev.x;
-          dirZ = curr.z - prev.z;
+    // Densify each waypoint segment so the road follows the terrain continuously
+    // instead of cutting corners or forming long, flat bridges across hills.
+    const buildStrip = (pts: RoadPoint[]) => {
+      const samples: RoadPoint[] = [];
+      const stepsPerSegment = 8;
+      for (let i = 0; i < pts.length - 1; i++) {
+        const a = pts[i];
+        const b = pts[i + 1];
+        for (let step = 0; step < stepsPerSegment; step++) {
+          const t = step / stepsPerSegment;
+          samples.push({
+            x: THREE.MathUtils.lerp(a.x, b.x, t),
+            z: THREE.MathUtils.lerp(a.z, b.z, t),
+            width: THREE.MathUtils.lerp(a.width, b.width, t),
+          });
         }
+      }
+      samples.push(pts[pts.length - 1]);
 
+      for (let i = 0; i < samples.length; i++) {
+        const curr = samples[i];
+        const prev = samples[Math.max(0, i - 1)];
+        const next = samples[Math.min(samples.length - 1, i + 1)];
+        const dirX = next.x - prev.x;
+        const dirZ = next.z - prev.z;
         const len = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
         const normX = -dirZ / len;
         const normZ = dirX / len;
-
-        const halfW = curr.width * 0.48;
+        const halfW = curr.width * 0.5;
 
         const leftX = curr.x - normX * halfW;
         const leftZ = curr.z - normZ * halfW;
-        const leftY = this.getHeight(leftX, leftZ) + 0.08;
-
         const rightX = curr.x + normX * halfW;
         const rightZ = curr.z + normZ * halfW;
-        const rightY = this.getHeight(rightX, rightZ) + 0.08;
 
-        vertices.push(leftX, leftY, leftZ);
-        vertices.push(rightX, rightY, rightZ);
+        // Sample both edges independently, keeping the ribbon glued to hills.
+        const leftY = this.getHeight(leftX, leftZ) + 0.22;
+        const rightY = this.getHeight(rightX, rightZ) + 0.22;
+        vertices.push(leftX, leftY, leftZ, rightX, rightY, rightZ);
 
-        if (i < pts.length - 1) {
-          const base = vertIndex;
-          indices.push(base, base + 1, base + 2);
-          indices.push(base + 1, base + 3, base + 2);
-          vertIndex += 2;
+        if (i < samples.length - 1) {
+          const base = vertexIndex;
+          indices.push(base, base + 1, base + 2, base + 1, base + 3, base + 2);
+          vertexIndex += 2;
         } else {
-          vertIndex += 2;
+          vertexIndex += 2;
         }
       }
     };
 
-    buildStrip(this.mainRoad, false);
-    buildStrip(this.mudTrail, true);
+    buildStrip(this.mainRoad);
+    buildStrip(this.mudTrail);
 
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
@@ -335,9 +347,11 @@ export class Terrain {
     geo.computeVertexNormals();
 
     const roadMat = new THREE.MeshStandardMaterial({
-      color: 0x765c43,
-      roughness: 0.92,
-      metalness: 0.02,
+      color: 0x806448,
+      roughness: 1.0,
+      metalness: 0,
+      flatShading: true,
+      side: THREE.DoubleSide,
       polygonOffset: true,
       polygonOffsetFactor: -1.0,
       polygonOffsetUnits: -1.0,
@@ -345,6 +359,7 @@ export class Terrain {
 
     const mesh = new THREE.Mesh(geo, roadMat);
     mesh.receiveShadow = true;
+    mesh.castShadow = false;
     return mesh;
   }
-}
+}}
